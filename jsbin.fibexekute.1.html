@@ -1,0 +1,1895 @@
+<!DOCTYPE html>
+<!--
+Created using JS Bin
+http://jsbin.lewagon.com
+
+Copyright (c) 2026 by anonymous (https://jsbin.lewagon.com/fibexekute/1/edit)
+
+Released under the MIT license: http://jsbin.mit-license.org
+-->
+<meta name="robots" content="noindex">
+<script>try{Object.defineProperty(window,'location',{writable:false,configurable:false,value:Object.freeze({...window.location,assign:()=>{},replace:()=>{}})})}catch(e){}</script>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Dyno's Instrument Class</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: 'Comic Sans MS', 'Chalkboard SE', 'Fredoka', 'Segoe UI', sans-serif;
+            touch-action: manipulation;
+        }
+
+        body {
+            background-color: #fef4e8;
+            color: #2d3748;
+            margin: 0;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            user-select: none;
+            -webkit-user-select: none;
+            transition: background-color 0.3s ease;
+        }
+
+        /* Mode Theme Overrides */
+        body.percussion-mode { background-color: #ff4d4d; }
+        body.electronic-mode { background-color: #ffffff; color: #000000; }
+        body.strings-mode { background-color: #000000; color: #ffea00; }
+
+        h1#app-title {
+            margin: 0 0 12px 0;
+            font-size: 2.2rem;
+            color: #ff5964;
+            text-shadow: 2px 2px 0px #4a5568;
+            text-align: center;
+            transition: color 0.3s ease;
+        }
+
+        body.percussion-mode h1#app-title { color: #ffffff; text-shadow: 2px 2px 0px #1a365d; }
+        body.electronic-mode h1#app-title { color: #000000; text-shadow: 2px 2px 0px #cccccc; }
+        body.strings-mode h1#app-title { color: #ffea00; text-shadow: 2px 2px 0px #555555; }
+
+        #app-container {
+            background-color: #ffffff;
+            width: 1100px;
+            max-width: 100%;
+            border-radius: 24px;
+            box-shadow: 0 10px 0px #edd6c4, 0 15px 35px rgba(0, 0, 0, 0.05);
+            border: 4px solid #4a5568;
+            display: grid;
+            grid-template-columns: 200px 1fr 200px;
+            grid-template-rows: auto auto;
+            overflow: hidden;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
+        }
+
+        body.percussion-mode #app-container {
+            border-color: #1a365d;
+            box-shadow: 0 10px 0px #b30000, 0 15px 35px rgba(0, 0, 0, 0.2);
+        }
+
+        body.electronic-mode #app-container {
+            background-color: #ffffff;
+            border-color: #000000;
+            box-shadow: 0 10px 0px #888888, 0 15px 35px rgba(0, 0, 0, 0.15);
+        }
+
+        body.strings-mode #app-container {
+            background-color: #000000;
+            border-color: #ffea00;
+            box-shadow: 0 10px 0px #b8a800, 0 15px 35px rgba(255, 234, 0, 0.2);
+        }
+
+        .sidebar {
+            background-color: #fffdf9;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        #palette-sidebar { border-right: 4px solid #4a5568; grid-column: 1; }
+        #instrument-sidebar { border-left: 4px solid #4a5568; grid-column: 3; }
+
+        body.percussion-mode .sidebar { background-color: #fff5f5; }
+        body.percussion-mode #palette-sidebar,
+        body.percussion-mode #instrument-sidebar { border-color: #1a365d; }
+
+        body.electronic-mode .sidebar { background-color: #ffffff; }
+        body.electronic-mode #palette-sidebar,
+        body.electronic-mode #instrument-sidebar { border-color: #000000; }
+
+        body.strings-mode .sidebar { background-color: #111111; }
+        body.strings-mode #palette-sidebar,
+        body.strings-mode #instrument-sidebar { border-color: #ffea00; }
+
+        .sidebar-title {
+            font-size: 0.85rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: #718096;
+            margin-bottom: 2px;
+        }
+
+        body.electronic-mode .sidebar-title { color: #000000; }
+        body.strings-mode .sidebar-title { color: #ffea00; }
+
+        .tool-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .palette-btn {
+            background-color: #ffffff;
+            border: 3px solid #cbd5e0;
+            border-radius: 12px;
+            padding: 8px 10px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #4a5568;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: transform 0.1s ease, background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+            box-shadow: 0 3px 0 #cbd5e0;
+        }
+
+        .palette-btn:hover {
+            border-color: #ff8c42;
+            background-color: #fff7f2;
+            transform: translateY(-2px);
+        }
+
+        .palette-btn.active {
+            border-color: #4a5568;
+            background-color: #ff8c42;
+            color: #ffffff;
+            box-shadow: 0 3px 0 #4a5568;
+        }
+
+        /* Mode Button Colors */
+        body.percussion-mode .palette-btn {
+            background-color: #2b6cb0;
+            border-color: #1a365d;
+            color: #ffffff;
+            box-shadow: 0 3px 0 #1a365d;
+        }
+        body.percussion-mode .palette-btn.active { background-color: #00b4d8; }
+
+        body.electronic-mode .palette-btn {
+            background-color: #000000;
+            border-color: #000000;
+            color: #ffffff;
+            box-shadow: 0 3px 0 #555555;
+        }
+        body.electronic-mode .palette-btn.active { background-color: #444444; }
+
+        /* String Section: Black background layout with Yellow buttons */
+        body.strings-mode .palette-btn {
+            background-color: #ffea00;
+            border-color: #ffea00;
+            color: #000000;
+            box-shadow: 0 3px 0 #998c00;
+        }
+        body.strings-mode .palette-btn:hover {
+            background-color: #fff266;
+            border-color: #ffea00;
+        }
+        body.strings-mode .palette-btn.active {
+            background-color: #ffd700;
+            border-color: #ffffff;
+            color: #000000;
+            box-shadow: 0 3px 0 #ffffff;
+        }
+
+        .nav-switch-btn {
+            margin-top: auto;
+            font-weight: 900 !important;
+        }
+
+        #nav-percussion-btn { background-color: #e53e3e; color: white; border-color: #9b2c2c; box-shadow: 0 3px 0 #9b2c2c; }
+        #nav-electronic-btn { background-color: #000000; color: white; border-color: #333333; box-shadow: 0 3px 0 #333333; }
+        #nav-strings-btn { background-color: #ffea00; color: black; border-color: #b8a800; box-shadow: 0 3px 0 #b8a800; }
+        #nav-wind-btn { background-color: #3182ce; color: white; border-color: #1a365d; box-shadow: 0 3px 0 #1a365d; }
+
+        #main-content {
+            grid-column: 2;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+
+        #readout-bar {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 3px dashed #e2e8f0;
+            padding-bottom: 8px;
+        }
+
+        body.electronic-mode #readout-bar { border-bottom-color: #000000; }
+        body.strings-mode #readout-bar { border-bottom-color: #ffea00; }
+
+        #status-readout {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: #718096;
+            transition: color 0.1s ease;
+        }
+
+        #status-readout.playing { color: #38b000; }
+        body.strings-mode #status-readout.playing { color: #00ff66; }
+
+        #pitch-level-readout {
+            font-size: 0.85rem;
+            color: #718096;
+            font-weight: 700;
+        }
+
+        body.electronic-mode #status-readout, body.electronic-mode #pitch-level-readout { color: #000000; }
+        body.strings-mode #status-readout, body.strings-mode #pitch-level-readout { color: #ffea00; }
+
+        #staff-card {
+            background-color: #fffdf5;
+            border: 3px solid #4a5568;
+            border-radius: 16px;
+            width: 100%;
+            height: 160px;
+            position: relative;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.03);
+        }
+
+        body.electronic-mode #staff-card { background-color: #ffffff; border-color: #000000; }
+        body.strings-mode #staff-card { background-color: #1a1a1a; border-color: #ffea00; }
+
+        .staff-line {
+            position: absolute;
+            left: 20px;
+            right: 20px;
+            height: 3px;
+            background-color: #4a5568;
+            border-radius: 2px;
+        }
+
+        body.electronic-mode .staff-line { background-color: #000000; }
+        body.strings-mode .staff-line { background-color: #ffea00; }
+
+        #clef {
+            position: absolute;
+            left: 25px;
+            top: 15px;
+            font-size: 85px;
+            color: #4a5568;
+            line-height: 1;
+            font-family: Georgia, serif;
+            pointer-events: none;
+        }
+
+        body.electronic-mode #clef { color: #000000; }
+        body.strings-mode #clef { color: #ffea00; }
+
+        .note-container {
+            position: absolute;
+            left: 50%;
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        .note-head-el {
+            position: absolute;
+            width: 22px;
+            height: 15px;
+            background-color: #ff5964;
+            border: 2px solid #4a5568;
+            border-radius: 50%;
+            transform: rotate(-20deg);
+        }
+
+        body.electronic-mode .note-head-el { background-color: #000000; border-color: #000000; }
+        body.strings-mode .note-head-el { background-color: #ffea00; border-color: #ffea00; }
+
+        .note-stem-el {
+            position: absolute;
+            width: 3px;
+            height: 40px;
+            background-color: #4a5568;
+            border-radius: 2px;
+        }
+
+        body.electronic-mode .note-stem-el { background-color: #000000; }
+        body.strings-mode .note-stem-el { background-color: #ffea00; }
+
+        #double-beam {
+            position: absolute;
+            width: 28px;
+            height: 5px;
+            background-color: #4a5568;
+            display: none;
+            z-index: 3;
+            border-radius: 2px;
+            pointer-events: none;
+        }
+
+        body.electronic-mode #double-beam { background-color: #000000; }
+        body.strings-mode #double-beam { background-color: #ffea00; }
+
+        #ledger-line {
+            position: absolute;
+            left: calc(50% - 10px);
+            width: 42px;
+            height: 3px;
+            background-color: #4a5568;
+            display: none;
+            z-index: 1;
+            border-radius: 2px;
+            pointer-events: none;
+        }
+
+        body.electronic-mode #ledger-line { background-color: #000000; }
+        body.strings-mode #ledger-line { background-color: #ffea00; }
+
+        #annotation-display {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 32px;
+            font-weight: bold;
+            color: #4a5568;
+            display: none;
+            z-index: 3;
+            pointer-events: none;
+        }
+
+        body.electronic-mode #annotation-display { color: #000000; }
+        body.strings-mode #annotation-display { color: #ffea00; }
+
+        #slur-arc {
+            position: absolute;
+            left: calc(50% - 20px);
+            width: 60px;
+            height: 20px;
+            border: solid 4px #ff5964;
+            border-color: #ff5964 transparent transparent transparent;
+            border-radius: 50%/10px 10px 0 0;
+            display: none;
+            z-index: 3;
+            pointer-events: none;
+        }
+
+        body.electronic-mode #slur-arc { border-color: #000000 transparent transparent transparent; }
+        body.strings-mode #slur-arc { border-color: #ffea00 transparent transparent transparent; }
+
+        #controls-bottom {
+            grid-column: 1 / 4;
+            background-color: #fffdf9;
+            border-top: 4px solid #4a5568;
+            padding: 12px 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        body.percussion-mode #controls-bottom { background-color: #fff5f5; border-color: #1a365d; }
+        body.electronic-mode #controls-bottom { background-color: #ffffff; border-color: #000000; }
+        body.strings-mode #controls-bottom { background-color: #111111; border-color: #ffea00; }
+
+        .interactive-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        #trumpet-valves { display: flex; gap: 18px; align-items: flex-end; }
+
+        #otamatone-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            background: #f0f0f0;
+            padding: 8px 12px;
+            border-radius: 12px;
+            border: 3px solid #000000;
+        }
+
+        .octave-btn {
+            background-color: #000000;
+            color: #ffffff;
+            border: 2px solid #000000;
+            border-radius: 8px;
+            padding: 6px 12px;
+            font-size: 0.8rem;
+            font-weight: 800;
+            cursor: pointer;
+        }
+
+        .octave-btn.active {
+            background-color: #555555;
+            border-color: #000000;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .valve-wrapper { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+        .valve-number { font-size: 0.85rem; font-weight: 800; color: #718096; }
+
+        body.electronic-mode .valve-number { color: #000000; }
+        body.strings-mode .valve-number { color: #ffea00; }
+
+        .valve-casing {
+            width: 52px;
+            height: 85px;
+            background: #edf2f7;
+            border: 3px solid #4a5568;
+            border-radius: 12px;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 0 #cbd5e0;
+        }
+
+        .valve-piston {
+            width: 38px;
+            height: 55px;
+            background: #ffbc42;
+            border: 3px solid #4a5568;
+            border-radius: 8px;
+            position: absolute;
+            top: 6px;
+            transition: transform 0.08s ease;
+        }
+
+        .valve-piston.pressed { transform: translateY(18px); background: #35a7ff; }
+
+        body.percussion-mode .valve-casing { border-color: #1a365d; }
+        body.electronic-mode .valve-casing { border-color: #000000; background: #eeeeee; }
+        body.electronic-mode .valve-piston { background: #000000; border-color: #000000; }
+
+        body.strings-mode .valve-casing { border-color: #ffea00; background: #222222; }
+        body.strings-mode .valve-piston { background: #ffea00; border-color: #ffea00; }
+        body.strings-mode .valve-piston.pressed { background: #ffffff; }
+
+        #metronome-panel {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #edf2f7;
+            padding: 8px 14px;
+            border-radius: 14px;
+            border: 3px solid #cbd5e0;
+        }
+
+        body.percussion-mode #metronome-panel { border-color: #1a365d; background: #e2e8f0; }
+        body.electronic-mode #metronome-panel { border-color: #000000; background: #ffffff; }
+        body.strings-mode #metronome-panel { border-color: #ffea00; background: #222222; }
+
+        .metro-btn {
+            background: #ffbc42;
+            color: #2d3748;
+            border: 2px solid #4a5568;
+            border-radius: 8px;
+            font-weight: bold;
+            padding: 6px 12px;
+            cursor: pointer;
+            box-shadow: 0 2px 0 #4a5568;
+        }
+
+        body.percussion-mode .metro-btn { background: #3182ce; color: white; border-color: #1a365d; box-shadow: 0 2px 0 #1a365d; }
+        body.electronic-mode .metro-btn { background: #000000; color: #ffffff; border-color: #000000; box-shadow: 0 2px 0 #444444; }
+        body.strings-mode .metro-btn { background: #ffea00; color: #000000; border-color: #ffea00; box-shadow: 0 2px 0 #998c00; }
+
+        .mobile-touch-controls { display: flex; gap: 10px; align-items: center; }
+
+        .touch-btn {
+            background-color: #35a7ff;
+            color: #ffffff;
+            border: 3px solid #4a5568;
+            border-radius: 12px;
+            padding: 10px 14px;
+            font-size: 0.9rem;
+            font-weight: 800;
+            cursor: pointer;
+            box-shadow: 0 4px 0 #4a5568;
+        }
+
+        body.percussion-mode .touch-btn { background-color: #2b6cb0; border-color: #1a365d; box-shadow: 0 4px 0 #1a365d; }
+        body.electronic-mode .touch-btn { background-color: #000000; border-color: #000000; box-shadow: 0 4px 0 #444444; }
+        body.strings-mode .touch-btn { background-color: #ffea00; color: #000000; border-color: #ffea00; box-shadow: 0 4px 0 #998c00; }
+
+        .touch-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #4a5568; }
+
+        #blow-btn { background-color: #38b000; box-shadow: 0 4px 0 #4a5568; padding: 12px 18px; font-size: 1rem; }
+        body.percussion-mode #blow-btn { background-color: #00b4d8; border-color: #1a365d; box-shadow: 0 4px 0 #1a365d; }
+        body.electronic-mode #blow-btn { background-color: #000000; border-color: #000000; color: #ffffff; box-shadow: 0 4px 0 #444444; }
+        body.strings-mode #blow-btn { background-color: #ffea00; border-color: #ffea00; color: #000000; box-shadow: 0 4px 0 #998c00; }
+
+        #gui-toggle-btn {
+            background-color: #ff5964;
+            color: #ffffff;
+            border: 3px solid #4a5568;
+            border-radius: 12px;
+            padding: 8px 14px;
+            font-size: 0.85rem;
+            font-weight: 800;
+            cursor: pointer;
+            align-self: flex-start;
+            box-shadow: 0 4px 0 #4a5568;
+            transition: transform 0.1s ease;
+        }
+
+        body.percussion-mode #gui-toggle-btn { background-color: #3182ce; border-color: #1a365d; box-shadow: 0 4px 0 #1a365d; }
+        body.electronic-mode #gui-toggle-btn { background-color: #000000; border-color: #000000; box-shadow: 0 4px 0 #444444; }
+        body.strings-mode #gui-toggle-btn { background-color: #ffea00; color: #000000; border-color: #ffea00; box-shadow: 0 4px 0 #998c00; }
+
+        #gui-toggle-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #4a5568; }
+
+        .hidden { display: none !important; }
+
+        #pitch-keybind-wrapper {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            background: #f7fafc;
+            border: 2px dashed #cbd5e0;
+            border-radius: 12px;
+            padding: 8px 12px;
+        }
+
+        body.percussion-mode #pitch-keybind-wrapper { background: #edf2f7; border-color: #cbd5e0; }
+        body.electronic-mode #pitch-keybind-wrapper { background: #ffffff; border-color: #000000; }
+        body.strings-mode #pitch-keybind-wrapper { background: #222222; border-color: #ffea00; }
+
+        .pitch-scroll-container {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 4px;
+            scrollbar-width: thin;
+        }
+
+        .pitch-scroll-container::-webkit-scrollbar { height: 6px; }
+        .pitch-scroll-container::-webkit-scrollbar-thumb { background: #cbd5e0; border-radius: 4px; }
+
+        .pitch-key-chip {
+            background: #ffffff;
+            border: 2px solid #4a5568;
+            border-radius: 8px;
+            padding: 6px 10px;
+            font-size: 0.75rem;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 2px 0 #cbd5e0;
+            cursor: pointer;
+            transition: background 0.1s;
+        }
+
+        body.percussion-mode .pitch-key-chip { border-color: #1a365d; }
+        body.electronic-mode .pitch-key-chip { border-color: #000000; background: #ffffff; color: #000000; }
+        body.strings-mode .pitch-key-chip { border-color: #ffea00; background: #000000; color: #ffea00; }
+
+        .pitch-key-chip.active {
+            background: #ff8c42;
+            color: #ffffff;
+            border-color: #4a5568;
+            box-shadow: 0 2px 0 #4a5568;
+        }
+
+        body.percussion-mode .pitch-key-chip.active { background: #00b4d8; border-color: #1a365d; box-shadow: 0 2px 0 #1a365d; }
+        body.electronic-mode .pitch-key-chip.active { background: #000000; color: #ffffff; border-color: #000000; box-shadow: 0 2px 0 #000000; }
+        body.strings-mode .pitch-key-chip.active { background: #ffea00; color: #000000; border-color: #ffea00; box-shadow: 0 2px 0 #ffea00; }
+    </style>
+</head>
+<body>
+
+    <h1 id="app-title">Dyno's Instrument Class</h1>
+
+    <div id="app-container">
+        <div class="sidebar" id="palette-sidebar">
+            <div class="sidebar-title">Note Values</div>
+            <div class="tool-group">
+                <button class="palette-btn active" data-type="duration" data-value="quarter">
+                    <span>Quarter (1b)</span><span class="symbol-icon">&#119137;</span>
+                </button>
+                <button class="palette-btn" data-type="duration" data-value="half">
+                    <span>Half (2b)</span><span class="symbol-icon">&#119136;</span>
+                </button>
+                <button class="palette-btn" data-type="duration" data-value="whole">
+                    <span>Whole (4b)</span><span class="symbol-icon">&#119135;</span>
+                </button>
+                <button class="palette-btn" data-type="duration" data-value="eighth">
+                    <span>Eighth (0.5b)</span><span class="symbol-icon">&#119138;</span>
+                </button>
+            </div>
+
+            <div class="sidebar-title">Articulations</div>
+            <div class="tool-group">
+                <button class="palette-btn active" data-type="annotation" data-value="none"><span>None</span><span>-</span></button>
+                <button class="palette-btn" data-type="annotation" data-value="slur"><span>Slur</span><span>⁀</span></button>
+                <button class="palette-btn" data-type="annotation" data-value="fermata"><span>Fermata</span><span>𝄐</span></button>
+                <button class="palette-btn" data-type="annotation" data-value="double"><span>Double 8th</span><span>♫</span></button>
+            </div>
+        </div>
+
+        <div id="main-content">
+            <div id="readout-bar">
+                <div>
+                    <span style="font-size: 0.75rem; text-transform: uppercase; color: inherit; font-weight: 800;">Audio Status</span>
+                    <div id="status-readout">SILENT</div>
+                </div>
+                <div id="pitch-level-readout">Pitch Offset: 0</div>
+            </div>
+
+            <div id="staff-card">
+                <div id="clef">&#119070;</div>
+                <div class="staff-line" style="top: 35px;"></div>
+                <div class="staff-line" style="top: 55px;"></div>
+                <div class="staff-line" style="top: 75px;"></div>
+                <div class="staff-line" style="top: 95px;"></div>
+                <div class="staff-line" style="top: 115px;"></div>
+
+                <div id="ledger-line"></div>
+                
+                <div class="note-container" id="note-1">
+                    <div class="note-head-el" id="head-1"></div>
+                    <div class="note-stem-el" id="stem-1"></div>
+                </div>
+
+                <div class="note-container" id="note-2" style="display: none;">
+                    <div class="note-head-el" id="head-2"></div>
+                    <div class="note-stem-el" id="stem-2"></div>
+                </div>
+
+                <div id="double-beam"></div>
+                <div id="slur-arc"></div>
+                <div id="annotation-display">𝄐</div>
+            </div>
+        </div>
+
+        <div class="sidebar" id="instrument-sidebar">
+            <div class="sidebar-title" id="inst-sidebar-title">Wind Instruments</div>
+            
+            <div class="tool-group" id="group-winds">
+                <button class="palette-btn active" data-inst="trumpet">🎺 Trumpet</button>
+                <button class="palette-btn" data-inst="baritone">🎷 Baritone</button>
+                <button class="palette-btn" data-inst="saxophone">🎷 Saxophone</button>
+                <button class="palette-btn" data-inst="clarinet">🥢 Clarinet</button>
+                <button class="palette-btn" data-inst="oboe">🥢 Oboe</button>
+                <button class="palette-btn" data-inst="flute">🪈 Flute</button>
+                <button class="palette-btn" data-inst="recorder">🪈 Recorder</button>
+                <button class="palette-btn" data-inst="trombone">🪈 Trombone</button>
+                <button class="palette-btn" data-inst="frenchhorn">📯 French Horn</button>
+            </div>
+
+            <div class="tool-group hidden" id="group-percussion">
+                <button class="palette-btn" data-inst="xylophone">🥢 Xylophone</button>
+                <button class="palette-btn" data-inst="drumset">🥁 Drum Set</button>
+                <button class="palette-btn" data-inst="kalimba">🎹 Kalimba</button>
+                <button class="palette-btn" data-inst="cymbals">💥 Cymbals</button>
+                <button class="palette-btn" data-inst="vibraslap">📳 Vibraslap</button>
+            </div>
+
+            <div class="tool-group hidden" id="group-electronic">
+                <button class="palette-btn" data-inst="piano">🎹 Piano</button>
+                <button class="palette-btn" data-inst="theremin">📡 Theremin</button>
+                <button class="palette-btn" data-inst="otamatone">🎵 Otamatone</button>
+                <button class="palette-btn" data-inst="stylophone">🖊️ Stylophone</button>
+            </div>
+
+            <div class="tool-group hidden" id="group-strings">
+                <button class="palette-btn" data-inst="guitar">🎸 Guitar</button>
+                <button class="palette-btn" data-inst="violin">🎻 Violin</button>
+                <button class="palette-btn" data-inst="viola">🎻 Viola</button>
+                <button class="palette-btn" data-inst="bass">🎸 Bass</button>
+                <button class="palette-btn" data-inst="banjo">🪕 Banjo</button>
+            </div>
+
+            <button class="palette-btn nav-switch-btn" id="nav-percussion-btn">🥁 Percussion ➔</button>
+            <button class="palette-btn nav-switch-btn hidden" id="nav-electronic-btn">⚡ Electronic ➔</button>
+            <button class="palette-btn nav-switch-btn hidden" id="nav-strings-btn">🎻 Strings ➔</button>
+            <button class="palette-btn nav-switch-btn hidden" id="nav-wind-btn">🎺 Wind Instruments ➔</button>
+        </div>
+
+        <div id="controls-bottom">
+            <div class="interactive-row">
+                <div id="trumpet-valves">
+                    <div class="valve-wrapper">
+                        <div class="valve-number">1</div>
+                        <div class="valve-casing" id="valve-touch-1">
+                            <div class="valve-piston" id="piston-1"></div>
+                        </div>
+                    </div>
+                    <div class="valve-wrapper">
+                        <div class="valve-number">2</div>
+                        <div class="valve-casing" id="valve-touch-2">
+                            <div class="valve-piston" id="piston-2"></div>
+                        </div>
+                    </div>
+                    <div class="valve-wrapper">
+                        <div class="valve-number">3</div>
+                        <div class="valve-casing" id="valve-touch-3">
+                            <div class="valve-piston" id="piston-3"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="otamatone-controls" class="hidden">
+                    <span class="sidebar-title" style="margin: 0;">Pitch:</span>
+                    <button class="octave-btn" data-octave="-12">LOW</button>
+                    <button class="octave-btn active" data-octave="0">MID</button>
+                    <button class="octave-btn" data-octave="12">HIGH</button>
+                </div>
+
+                <div id="metronome-panel">
+                    <button class="metro-btn" id="metro-toggle">START METRONOME</button>
+                    <input type="range" id="metro-bpm" min="40" max="208" value="120">
+                    <span id="bpm-val" style="font-weight:bold; font-size: 0.85rem;">120 BPM</span>
+                </div>
+
+                <div class="mobile-touch-controls" id="mobile-gui">
+                    <button class="touch-btn" id="blow-btn">PLAY NOTE</button>
+                </div>
+            </div>
+
+            <button id="gui-toggle-btn">Hide Mobile GUI</button>
+
+            <div id="pitch-keybind-wrapper">
+                <div class="sidebar-title" style="font-size: 0.75rem;">Hold Pitch Keys (Horizontal Scroll):</div>
+                <div class="pitch-scroll-container" id="pitch-scroll-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Audio Context & Dynamic Nodes
+        let audioCtx = null;
+        let mainOsc = null;
+        let subOsc = null;
+        let noiseNode = null;
+        let gainNode = null;
+        let noiseGain = null;
+        let filterNode = null;
+        let bodyFilter = null;
+        let noteTimeout = null;
+        let vibratoOsc = null;
+        let vibratoGain = null;
+
+        // Custom nodes for synthesized percussion & sound effects
+        let cymbalOscs = [];
+        let cymbalGain = null;
+        let tremoloOsc = null;
+        let tremoloGain = null;
+
+        // Metronome State
+        let metroInterval = null;
+        let isMetroRunning = false;
+        let bpm = 120;
+
+        // Active View Layout Mode & Current Instrument
+        let currentMode = 'winds'; // 'winds', 'percussion', 'electronic', or 'strings'
+        let currentInstrument = 'trumpet';
+        let otamatoneOctaveShift = 0; // -12 for Low, 0 for Mid, +12 for High
+
+        // State Tracking
+        const activeValves = { 1: false, 2: false, 3: false };
+        let pitchLevel = 0;
+        const pressedArrowKeys = new Set();
+        const activeHeldKeys = new Set();
+
+        let isBlowing = false;
+        const durations = ['eighth', 'quarter', 'half', 'whole'];
+        let durationIndex = 1;
+
+        const annotations = ['none', 'slur', 'fermata', 'double'];
+        let annotationIndex = 0;
+
+        // Dynamic Pitch Settings
+        const PITCH_CONFIGS = [
+            { label: "Lowest", keys: "↓", shift: -12 },
+            { label: "Lower-Left", keys: "↓ + ←", shift: -9 },
+            { label: "2nd Lowest", keys: "←", shift: -6 },
+            { label: "Upper-Left", keys: "↑ + ←", shift: 0 },
+            { label: "Normal (Base)", keys: "None", shift: 0 },
+            { label: "Upper-Right", keys: "↑ + →", shift: 9 },
+            { label: "2nd Highest", keys: "→", shift: 6 },
+            { label: "Lower-Right", keys: "↓ + →", shift: -3 },
+            { label: "Highest", keys: "↑", shift: 12 }
+        ];
+
+        const MAX_PITCH = 12;
+        const SECOND_MAX_PITCH = 6;
+        const MIN_PITCH = -12;
+        const SECOND_MIN_PITCH = -6;
+
+        const instrumentPitchOffsets = {
+            'trumpet': 0,
+            'baritone': -12,
+            'saxophone': -12,
+            'clarinet': 0,
+            'oboe': 0,
+            'flute': 12,
+            'recorder': 0,
+            'trombone': -12,
+            'frenchhorn': -7,
+            'xylophone': 12,
+            'drumset': -12,
+            'kalimba': 0,
+            'cymbals': 12,
+            'banjo': 0,
+            'vibraslap': 0,
+            'piano': 0,
+            'theremin': 0,
+            'otamatone': 0,
+            'stylophone': 0,
+            'guitar': -12,
+            'violin': 7,
+            'viola': 0,
+            'bass': -24
+        };
+
+        const fingeringChart = {
+            '123': {name: 'F#4', freq: 369.99, y: 90, ledger: false},
+            '13':  {name: 'G4',  freq: 392.00, y: 85, ledger: false},
+            '23':  {name: 'G#4', freq: 415.30, y: 80, ledger: false},
+            '12':  {name: 'A4',  freq: 440.00, y: 75, ledger: false},
+            '1':   {name: 'A#4', freq: 466.16, y: 70, ledger: false},
+            '2':   {name: 'B4',  freq: 493.88, y: 65, ledger: false},
+            '0':   {name: 'C5',  freq: 523.25, y: 60, ledger: false}
+        };
+
+        const noteSequence = [
+            {name: 'C1',  freq: 32.70,  y: 180, ledger: true},
+            {name: 'F1',  freq: 43.65,  y: 170, ledger: true},
+            {name: 'A1',  freq: 55.00,  y: 165, ledger: true},
+            {name: 'F#2', freq: 92.50,  y: 160, ledger: true},
+            {name: 'G2',  freq: 98.00,  y: 155, ledger: true},
+            {name: 'G#2', freq: 103.83, y: 150, ledger: true},
+            {name: 'A2',  freq: 110.00, y: 145, ledger: true},
+            {name: 'A#2', freq: 116.54, y: 140, ledger: true},
+            {name: 'B2',  freq: 123.47, y: 135, ledger: true},
+            {name: 'C3',  freq: 130.81, y: 130, ledger: true},
+            {name: 'C#3', freq: 138.59, y: 125, ledger: true},
+            {name: 'D3',  freq: 146.83, y: 120, ledger: true},
+            {name: 'D#3', freq: 155.56, y: 115, ledger: true},
+            {name: 'E3',  freq: 164.81, y: 110, ledger: true},
+            {name: 'F3',  freq: 174.61, y: 105, ledger: true},
+            {name: 'F#3', freq: 185.00, y: 145, ledger: true},
+            {name: 'G3',  freq: 196.00, y: 140, ledger: false},
+            {name: 'G#3', freq: 207.65, y: 135, ledger: false},
+            {name: 'A3',  freq: 220.00, y: 130, ledger: false},
+            {name: 'A#3', freq: 233.08, y: 125, ledger: true},
+            {name: 'B3',  freq: 246.94, y: 125, ledger: false},
+            {name: 'C4',  freq: 261.63, y: 120, ledger: true},
+            {name: 'C#4', freq: 277.18, y: 120, ledger: false},
+            {name: 'D4',  freq: 293.66, y: 115, ledger: false},
+            {name: 'D#4', freq: 311.13, y: 110, ledger: false},
+            {name: 'E4',  freq: 329.63, y: 105, ledger: false},
+            {name: 'F4',  freq: 349.23, y: 100, ledger: false},
+            {name: 'F#4', freq: 369.99, y: 90,  ledger: false},
+            {name: 'G4',  freq: 392.00, y: 85,  ledger: false},
+            {name: 'G#4', freq: 415.30, y: 80,  ledger: false},
+            {name: 'A4',  freq: 440.00, y: 75,  ledger: false},
+            {name: 'A#4', freq: 466.16, y: 70,  ledger: false},
+            {name: 'B4',  freq: 493.88, y: 65,  ledger: false},
+            {name: 'C5',  freq: 523.25, y: 60,  ledger: false},
+            {name: 'C#5', freq: 554.37, y: 50,  ledger: false},
+            {name: 'D5',  freq: 587.33, y: 45,  ledger: false},
+            {name: 'D#5', freq: 622.25, y: 40,  ledger: false},
+            {name: 'E5',  freq: 659.25, y: 35,  ledger: false},
+            {name: 'F5',  freq: 698.46, y: 30,  ledger: false},
+            {name: 'F#5', freq: 739.99, y: 30,  ledger: false},
+            {name: 'G5',  freq: 783.99, y: 25,  ledger: false},
+            {name: 'G#5', freq: 830.61, y: 20,  ledger: false},
+            {name: 'A5',  freq: 880.00, y: 15,  ledger: true},
+            {name: 'A#5', freq: 932.33, y: 10,  ledger: true},
+            {name: 'B5',  freq: 987.77, y: 5,   ledger: true},
+            {name: 'C6',  freq: 1046.50, y: 0,  ledger: true},
+            {name: 'D6',  freq: 1174.66, y: -10, ledger: true},
+            {name: 'E6',  freq: 1318.51, y: -20, ledger: true},
+            {name: 'F6',  freq: 1396.91, y: -25, ledger: true},
+            {name: 'G6',  freq: 1567.98, y: -35, ledger: true}
+        ];
+
+        // DOM Elements
+        const statusReadoutEl = document.getElementById('status-readout');
+        const pitchLevelReadoutEl = document.getElementById('pitch-level-readout');
+        const note1El = document.getElementById('note-1');
+        const head1El = document.getElementById('head-1');
+        const stem1El = document.getElementById('stem-1');
+        const note2El = document.getElementById('note-2');
+        const doubleBeamEl = document.getElementById('double-beam');
+        const slurArcEl = document.getElementById('slur-arc');
+        const ledgerLineEl = document.getElementById('ledger-line');
+        const annotationEl = document.getElementById('annotation-display');
+        const blowBtn = document.getElementById('blow-btn');
+        const guiToggleBtn = document.getElementById('gui-toggle-btn');
+        const mobileGui = document.getElementById('mobile-gui');
+        const pitchScrollList = document.getElementById('pitch-scroll-list');
+
+        // Navigation elements
+        const navPercussionBtn = document.getElementById('nav-percussion-btn');
+        const navElectronicBtn = document.getElementById('nav-electronic-btn');
+        const navStringsBtn = document.getElementById('nav-strings-btn');
+        const navWindBtn = document.getElementById('nav-wind-btn');
+
+        const groupWinds = document.getElementById('group-winds');
+        const groupPercussion = document.getElementById('group-percussion');
+        const groupElectronic = document.getElementById('group-electronic');
+        const groupStrings = document.getElementById('group-strings');
+        const instSidebarTitle = document.getElementById('inst-sidebar-title');
+
+        const otamatoneControls = document.getElementById('otamatone-controls');
+        const trumpetValves = document.getElementById('trumpet-valves');
+
+        PITCH_CONFIGS.forEach(cfg => {
+            const chip = document.createElement('div');
+            chip.className = 'pitch-key-chip';
+            chip.dataset.shift = cfg.shift;
+            chip.innerHTML = `<strong>${cfg.label}:</strong> <span class="key-badge">${cfg.keys}</span>`;
+            pitchScrollList.appendChild(chip);
+        });
+
+        guiToggleBtn.addEventListener('click', () => {
+            mobileGui.classList.toggle('hidden');
+            guiToggleBtn.textContent = mobileGui.classList.contains('hidden') ? 'Show Mobile GUI' : 'Hide Mobile GUI';
+        });
+
+        // Switch Layout Views
+        navPercussionBtn.addEventListener('click', () => {
+            currentMode = 'percussion';
+            document.body.className = 'percussion-mode';
+            groupWinds.classList.add('hidden');
+            groupPercussion.classList.remove('hidden');
+            groupElectronic.classList.add('hidden');
+            groupStrings.classList.add('hidden');
+
+            navPercussionBtn.classList.add('hidden');
+            navElectronicBtn.classList.remove('hidden');
+            navStringsBtn.classList.add('hidden');
+            navWindBtn.classList.add('hidden');
+            instSidebarTitle.textContent = "Percussion";
+            
+            currentInstrument = 'xylophone';
+            updateInstrumentActiveBtn();
+            updateControlsVisibility();
+            updateUI();
+        });
+
+        navElectronicBtn.addEventListener('click', () => {
+            currentMode = 'electronic';
+            document.body.className = 'electronic-mode';
+            groupWinds.classList.add('hidden');
+            groupPercussion.classList.add('hidden');
+            groupElectronic.classList.remove('hidden');
+            groupStrings.classList.add('hidden');
+
+            navPercussionBtn.classList.add('hidden');
+            navElectronicBtn.classList.add('hidden');
+            navStringsBtn.classList.remove('hidden');
+            navWindBtn.classList.add('hidden');
+            instSidebarTitle.textContent = "Electronic";
+            
+            currentInstrument = 'piano';
+            updateInstrumentActiveBtn();
+            updateControlsVisibility();
+            updateUI();
+        });
+
+        navStringsBtn.addEventListener('click', () => {
+            currentMode = 'strings';
+            document.body.className = 'strings-mode';
+            groupWinds.classList.add('hidden');
+            groupPercussion.classList.add('hidden');
+            groupElectronic.classList.add('hidden');
+            groupStrings.classList.remove('hidden');
+
+            navPercussionBtn.classList.add('hidden');
+            navElectronicBtn.classList.add('hidden');
+            navStringsBtn.classList.add('hidden');
+            navWindBtn.classList.remove('hidden');
+            instSidebarTitle.textContent = "String Instruments";
+
+            currentInstrument = 'guitar';
+            updateInstrumentActiveBtn();
+            updateControlsVisibility();
+            updateUI();
+        });
+
+        navWindBtn.addEventListener('click', () => {
+            currentMode = 'winds';
+            document.body.className = '';
+            groupWinds.classList.remove('hidden');
+            groupPercussion.classList.add('hidden');
+            groupElectronic.classList.add('hidden');
+            groupStrings.classList.add('hidden');
+
+            navWindBtn.classList.add('hidden');
+            navPercussionBtn.classList.remove('hidden');
+            navElectronicBtn.classList.add('hidden');
+            navStringsBtn.classList.add('hidden');
+            instSidebarTitle.textContent = "Wind Instruments";
+            
+            currentInstrument = 'trumpet';
+            updateInstrumentActiveBtn();
+            updateControlsVisibility();
+            updateUI();
+        });
+
+        function updateControlsVisibility() {
+            if (currentInstrument === 'otamatone') {
+                otamatoneControls.classList.remove('hidden');
+                trumpetValves.classList.add('hidden');
+            } else {
+                otamatoneControls.classList.add('hidden');
+                trumpetValves.classList.remove('hidden');
+            }
+        }
+
+        document.querySelectorAll('.octave-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.octave-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                otamatoneOctaveShift = parseInt(btn.dataset.octave);
+                if (isBlowing) triggerNotePlay();
+                else updateUI();
+            });
+        });
+
+        function updateInstrumentActiveBtn() {
+            document.querySelectorAll('[data-inst]').forEach(b => {
+                b.classList.toggle('active', b.dataset.inst === currentInstrument);
+            });
+        }
+
+        function createNoiseBuffer() {
+            const bufferSize = audioCtx.sampleRate * 2;
+            const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const output = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+                output[i] = Math.random() * 2 - 1;
+            }
+            return buffer;
+        }
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                
+                mainOsc = audioCtx.createOscillator();
+                subOsc = audioCtx.createOscillator();
+
+                vibratoOsc = audioCtx.createOscillator();
+                vibratoGain = audioCtx.createGain();
+                vibratoOsc.frequency.value = 5.2;
+                vibratoGain.gain.value = 0;
+                vibratoOsc.connect(mainOsc.frequency);
+                vibratoOsc.connect(subOsc.frequency);
+                vibratoOsc.start();
+
+                // Tremolo LFO for Vibraslap "drrrr" rattle
+                tremoloOsc = audioCtx.createOscillator();
+                tremoloGain = audioCtx.createGain();
+                tremoloOsc.frequency.value = 25; // Rapid vibration rate
+                tremoloGain.gain.value = 0;
+                tremoloOsc.start();
+
+                noiseNode = audioCtx.createBufferSource();
+                noiseNode.buffer = createNoiseBuffer();
+                noiseNode.loop = true;
+                noiseGain = audioCtx.createGain();
+                noiseGain.gain.value = 0;
+                noiseNode.connect(noiseGain);
+                noiseNode.start();
+
+                filterNode = audioCtx.createBiquadFilter();
+                bodyFilter = audioCtx.createBiquadFilter();
+                gainNode = audioCtx.createGain();
+
+                // Connect Tremolo to GainNode audioParam
+                tremoloOsc.connect(tremoloGain);
+                tremoloGain.connect(gainNode.gain);
+
+                mainOsc.connect(filterNode);
+                subOsc.connect(filterNode);
+                noiseGain.connect(filterNode);
+
+                filterNode.connect(bodyFilter);
+                bodyFilter.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+
+                gainNode.gain.value = 0;
+                mainOsc.start();
+                subOsc.start();
+
+                const cymbalRatios = [205.3, 304.2, 369.7, 522.7, 540.5, 812.1];
+                cymbalGain = audioCtx.createGain();
+                cymbalGain.gain.value = 0;
+                
+                cymbalOscs = cymbalRatios.map(freq => {
+                    const osc = audioCtx.createOscillator();
+                    osc.type = 'square';
+                    osc.frequency.value = freq;
+                    osc.connect(cymbalGain);
+                    osc.start();
+                    return osc;
+                });
+                
+                const cymbalFilter = audioCtx.createBiquadFilter();
+                cymbalFilter.type = 'highpass';
+                cymbalFilter.frequency.value = 6500;
+                cymbalGain.connect(cymbalFilter);
+                cymbalFilter.connect(gainNode);
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function configureInstrumentSound(freq) {
+            const now = audioCtx.currentTime;
+            
+            filterNode.Q.value = 1;
+            cymbalGain.gain.setTargetAtTime(0, now, 0.01);
+            tremoloGain.gain.setTargetAtTime(0, now, 0.01); // Reset tremolo
+            
+            switch (currentInstrument) {
+                // String Instruments
+                case 'guitar':
+                    mainOsc.type = 'triangle';
+                    subOsc.type = 'sawtooth';
+                    filterNode.type = 'lowpass';
+                    filterNode.frequency.setTargetAtTime(freq * 2.5, now, 0.01);
+                    bodyFilter.type = 'peaking';
+                    bodyFilter.frequency.value = 400;
+                    bodyFilter.gain.value = 6;
+                    noiseGain.gain.setTargetAtTime(0.005, now, 0.01);
+                    vibratoGain.gain.setTargetAtTime(0, now, 0.02);
+                    break;
+
+                case 'violin':
+                    mainOsc.type = 'sawtooth';
+                    subOsc.type = 'sawtooth';
+                    filterNode.type = 'lowpass';
+                    filterNode.frequency.setTargetAtTime(freq * 4.0, now, 0.01);
+                    bodyFilter.type = 'peaking';
+                    bodyFilter.frequency.value = 2500;
+                    bodyFilter.gain.value = 7;
+                    noiseGain.gain.setTargetAtTime(0.003, now, 0.01);
+                    vibratoGain.gain.setTargetAtTime(4.5, now, 0.02);
+                    break;
+
+                case 'viola':
+                    mainOsc.type = 'sawtooth';
+                    subOsc.type = 'triangle';
+                    filterNode.type = 'lowpass';
+                    filterNode.frequency.setTargetAtTime(freq * 3.0, now, 0.01);
+                    bodyFilter.type = 'peaking';
+                    bodyFilter.frequency.value = 1200;
+                    bodyFilter.gain.value = 6;
+                    noiseGain.gain.setTargetAtTime(0.003, now, 0.01);
+                    vibratoGain.gain.setTargetAtTime(3.5, now, 0.02);
+                    break;
+
+                case 'bass':
+                    mainOsc.type = 'triangle';
+                    subOsc.type = 'sine';
+                    filterNode.type = 'lowpass';
+                    filterNode.frequency.setTargetAtTime(freq * 1.8, now, 0.01);
+                    bodyFilter.type = 'lowshelf';
+                    bodyFilter.frequency.value = 120;
+                    bodyFilter.gain.value = 8;
+                    noiseGain.gain.setTargetAtTime(0, now, 0.01);
+                    vibratoGain.gain.setTargetAtTime(0, now, 0.02);
+                    break;
+
+                case 'banjo':
+                    // Real twangy authentic banjo timbre (bright skin head attack + sharp upper harmonics)
+                    mainOsc.type = 'sawtooth';
+                    subOsc.type = 'square';
+                    filterNode.type = 'bandpass';
+                    filterNode.frequency.setTargetAtTime(freq * 2.8, now, 0.01);
+                    filterNode.Q.value = 2.2;
+                    bodyFilter.type = 'peaking';
+                    bodyFilter.frequency.value = 2400;
+                    bodyFilter.gain.value = 12;
+                    noiseGain.gain.setValueAtTime(0.03, now);
+                    noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+                    vibratoGain.gain.setTargetAtTime(0, now, 0.02);
+                    break;
+
+                // Electronic Instruments
+                case 'piano':
+                    mainOsc.type = 'sine';
+                    subOsc.type = 'triangle';
+                    filterNode.type = 'lowpass';
+                    filterNode.frequency.setTargetAtTime(freq * 3.0, now, 0.01);
+                    bodyFilter.type = 'peaking';
+                    bodyFilter.frequency.value = 800;
+                    bodyFilter.gain.value = 4;
+                    noiseGain.gain.setTargetAtTime(0, now, 0.01);
+                    vibratoGain.gain.setTargetAtTime(0, now, 0.01);
+                    break;
+
+                case 'theremin':
+                    mainOsc.type = 'sine';
+                    subOsc.type = 'sine';
+                    filterNode.type = 'lowpass';
+                    filterNode.frequency.setTargetAtTime(freq * 4, now, 0.01);
+                    bodyFilter.type = 'peaking';
+                    bodyFilter.frequency.value = 2000;
+                    bodyFilter.gain.value = 2;
+                    noiseGain.gain.setTargetAtTime(0, now, 0.01);
+                    vibratoGain.gain.setTargetAtTime(8.0, now, 0.02);
+                    break;
+
+                case 'otamatone':
+                    mainOsc.type = 'sawtooth';
+                    subOsc.type = 'square';
+                    filterNode.type = 'bandpass';
+                    filterNode.frequency.setTargetAtTime(1100, now, 0.01);
+                    filterNode.Q.value = 3.5;
+                    bodyFilter.type = 'peaking';
+                    bodyFilter.frequency.value = 2200;
+                    bodyFilter.gain.value = 8;
+                    noiseGain.gain.setTargetAtTime(0.001, now, 0.01);
+                    vibratoGain.gain.setTargetAtTime(4.5, now, 0.02);
+                    break;
+
+                case 'stylophone':
+                    // Electric buzz sound (harsh raw square wave + lowpass resonant peak)
+                    mainOsc.type = 'sawtooth';
+                    subOsc.type = 'square';
+                    filterNode.type = 'lowpass';
+                    filterNode.frequency.setTargetAtTime(freq * 2.2, now, 0.01);
+                    filterNode.Q.value = 5.0;
+                    bodyFilter.type = 'peaking';
+                    bodyFilter.frequency.value = 1800;
+                    bodyFilter.gain.value = 8;
+                    noiseGain.gain.setTargetAtTime(0, now, 0.01);
+                    vibratoGain.gain.setTargetAtTime(1.5, now, 0.02);
+                    break;
+
+                // Percussion Sound Profiles
+                case 'vibraslap':
+                    // Authentic rapid "drrrr" rattle effect using intense rapid amplitude modulation
+                    mainOsc.type = 'sawtooth';
+                    subOsc.type = 'square';
+                    filterNode.type = 'bandpass';
+                    filterNode.frequency.setTargetAtTime(1200, now, 0.01);
+                    filterNode.Q.value = 3.0;
+                    bodyFilter.type = 'peaking';
+                    bodyFilter.frequency.value = 2200;
+                    bodyFilter.gain.value = 10;
+                    
+                    noiseGain.gain.setValueAtTime(0.08, now);
+                    noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+                    
+                    // Activate rapid "drrrr" tremolo
+                    tremoloGain.gain.setValueAtTime(0.25, now);
+                    tremoloGain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+                    
+                    vibratoGain.gain.setTargetAtTime(18.0, now, 0.01);
+                    break;
+
+                case 'xylophone':
+                    mainOsc.type = 'sine';
+                    subOsc.type = 'triangle';
+                    filterNode.type = 'lowpass';
+                    filterNode.frequency.setTargetAtTime(freq * 3.5, now, 0.01);
+                    bodyFilter.type = 'peaking';
+                    bodyFilter.frequency.value = 3500;
+                    bodyFilter.gain.value = 8;
+                    noiseGain.gain.setTargetAtTime(0.02, now, 0.01);
+                    vibratoGain.gain.setTargetAtTime(0, now, 0.02);
+                    break;
+
+                case 'drumset':
+                    mainOsc.type = 'sine';
+                    subOsc.type = 'triangle';
+                    filterNode.type = 'lowpass';
+                    filterNode.frequency.setTargetAtTime(250, now, 0.01);
+                    mainOsc.frequency.setValueAtTime(freq * 1.5, now);
+                    mainOsc.frequency.exponentialRampToValueAtTime(55, now + 0.08);
+                    subOsc.frequency.setValueAtTime(freq, now);
+                    subOsc.frequency.exponentialRampToValueAtTime(40, now + 0.08);
+                    bodyFilter.type = 'lowshelf';
+                    bodyFilter.frequency.value = 100;
+                    bodyFilter.gain.value = 14;
+                    noiseGain.gain.setValueAtTime(0.35, now);
+                    noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+                    vibratoGain.gain.setTargetAtTime(0, now, 0.02);
+                    break;
+
+                case 'kalimba':
+                    mainOsc.type = 'sine';
+                    subOsc.type = 'sine';
+                    mainOsc.frequency.setValueAtTime(freq, now);
+                    subOsc.frequency.setValueAtTime(freq * 3.01, now);
+                    filterNode.type = 'lowpass';
+                    filterNode.frequency.setTargetAtTime(freq * 2.8, now, 0.01);
+                    bodyFilter.type = 'peaking';
+                    bodyFilter.frequency.value = 800;
+                    bodyFilter.gain.value = 8;
+                    noiseGain.gain.setTargetAtTime(0.002, now, 0.01);
+                    vibratoGain.gain.setTargetAtTime(0, now, 0.02);
+                    break;
+
+                case 'cymbals':
+                    // Clean acoustic metallic crash/clang - zero synth/electronic background hum
+                    mainOsc.type = 'sine';
+                    subOsc.type = 'sine';
+                    noiseGain.gain.setValueAtTime(0, now); // Silence electronic noise generator
+                    
+                    filterNode.type = 'highpass';
+                    filterNode.frequency.setTargetAtTime(4500, now, 0.01);
+                    bodyFilter.type = 'peaking';
+                    bodyFilter.frequency.value = 7500;
+                    bodyFilter.gain.value = 8;
+                    
+                    // Metallic oscillator cluster clang
+                    cymbalGain.gain.setValueAtTime(0.35, now);
+                    cymbalGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.7);
+                    vibratoGain.gain.setTargetAtTime(0, now, 0.02);
+                    break;
+
+                // Wind Sound Profiles
+                case 'recorder':
+                    // Pure, calm, airy woodwind tone with prominent soft breath wind sound
+                    mainOsc.type = 'sine';
+                    subOsc.type = 'sine';
+                    filterNode.type = 'lowpass';
+                    filterNode.frequency.setTargetAtTime(freq * 1.8, now, 0.01);
+                    bodyFilter.type = 'peaking';
+                    bodyFilter.frequency.value = 1200;
+                    bodyFilter.gain.value = 2;
+                    noiseGain.gain.setTargetAtTime(0.045, now, 0.01); // Enhanced airy breath wind
+                    vibratoGain.gain.setTargetAtTime(0.8, now, 0.02); // Calm, gentle vibrato
+                    break;
+
+                case 'flute':
+                    mainOsc.type = 'sine';
+                    subOsc.type = 'triangle';
+                    filterNode.type = 'lowpass';
+                    filterNode.frequency.setTargetAtTime(freq * 2.8, now, 0.01);
+                    bodyFilter.type = 'peaking';
+                    bodyFilter.frequency.value = 2800;
+                    bodyFilter.gain.value = 3;
+                    noiseGain.gain.setTargetAtTime(0.012, now, 0.01);
+                    vibratoGain.gain.setTargetAtTime(2.2, now, 0.02);
+                    break;
+
+                case 'clarinet':
+                    mainOsc.type = 'square';
+                    subOsc.type = 'triangle';
+                    filterNode.type = 'lowpass';
+                    filterNode.frequency.setTargetAtTime(freq * 2.1, now, 0.01);
+                    bodyFilter.type = 'peaking';
+                    bodyFilter.frequency.value = 1500;
+                    bodyFilter.gain.value = 5;
+                    noiseGain.gain.setTargetAtTime(0.003, now, 0.01);
+                    vibratoGain.gain.setTargetAtTime(0.6, now, 0.02);
+                    break;
+
+                case 'oboe':
+                    mainOsc.type = 'sawtooth';
+                    subOsc.type = 'square';
+                    filterNode.type = 'bandpass';
+                    filterNode.frequency.setTargetAtTime(1400, now, 0.01);
+                    filterNode.Q.value = 2.5;
+                    bodyFilter.type = 'peaking';
+                    bodyFilter.frequency.value = 3000;
+                    bodyFilter.gain.value = 9;
+                    noiseGain.gain.setTargetAtTime(0.004, now, 0.01);
+                    vibratoGain.gain.setTargetAtTime(3.0, now, 0.02);
+                    break;
+
+                case 'saxophone':
+                    mainOsc.type = 'sawtooth';
+                    subOsc.type = 'square';
+                    filterNode.type = 'lowpass';
+                    filterNode.frequency.setTargetAtTime(freq * 3.2, now, 0.01);
+                    bodyFilter.type = 'peaking';
+                    bodyFilter.frequency.value = 1100;
+                    bodyFilter.gain.value = 6;
+                    noiseGain.gain.setTargetAtTime(0.005, now, 0.01);
+                    vibratoGain.gain.setTargetAtTime(2.8, now, 0.02);
+                    break;
+
+                case 'trombone':
+                    mainOsc.type = 'sawtooth';
+                    subOsc.type = 'sawtooth';
+                    filterNode.type = 'lowpass';
+                    filterNode.frequency.setTargetAtTime(freq * 2.2, now, 0.01);
+                    bodyFilter.type = 'peaking';
+                    bodyFilter.frequency.value = 550;
+                    bodyFilter.gain.value = 6;
+                    noiseGain.gain.setTargetAtTime(0.002, now, 0.01);
+                    vibratoGain.gain.setTargetAtTime(0.8, now, 0.02);
+                    break;
+
+                case 'baritone':
+                    mainOsc.type = 'sawtooth';
+                    subOsc.type = 'triangle';
+                    filterNode.type = 'lowpass';
+                    filterNode.frequency.setTargetAtTime(freq * 2.0, now, 0.01);
+                    bodyFilter.type = 'peaking';
+                    bodyFilter.frequency.value = 600;
+                    bodyFilter.gain.value = 7;
+                    noiseGain.gain.setTargetAtTime(0.003, now, 0.01);
+                    vibratoGain.gain.setTargetAtTime(0.9, now, 0.02);
+                    break;
+
+                case 'frenchhorn':
+                    mainOsc.type = 'triangle';
+                    subOsc.type = 'sawtooth';
+                    filterNode.type = 'lowpass';
+                    filterNode.frequency.setTargetAtTime(freq * 1.6, now, 0.01);
+                    bodyFilter.type = 'peaking';
+                    bodyFilter.frequency.value = 420;
+                    bodyFilter.gain.value = 8;
+                    noiseGain.gain.setTargetAtTime(0.002, now, 0.01);
+                    vibratoGain.gain.setTargetAtTime(0.5, now, 0.02);
+                    break;
+
+                case 'trumpet':
+                default:
+                    mainOsc.type = 'sawtooth';
+                    subOsc.type = 'triangle';
+                    filterNode.type = 'lowpass';
+                    filterNode.frequency.setTargetAtTime(1800, now, 0.01);
+                    bodyFilter.type = 'peaking';
+                    bodyFilter.frequency.value = 1250;
+                    bodyFilter.gain.value = 7;
+                    noiseGain.gain.setTargetAtTime(0.003, now, 0.01);
+                    vibratoGain.gain.setTargetAtTime(1.4, now, 0.02);
+                    break;
+            }
+        }
+
+        function getPlayDurationMs() {
+            const currentDuration = durations[durationIndex];
+            const beatTimeSeconds = 60 / bpm;
+
+            let beats = 1.0; 
+            if (currentDuration === 'eighth') beats = 0.5;
+            else if (currentDuration === 'quarter') beats = 1.0;
+            else if (currentDuration === 'half') beats = 2.0;
+            else if (currentDuration === 'whole') beats = 4.0;
+
+            return beats * beatTimeSeconds * 1000;
+        }
+
+        function getValveCombination() {
+            let combo = '';
+            if (activeValves[1]) combo += '1';
+            if (activeValves[2]) combo += '2';
+            if (activeValves[3]) combo += '3';
+            return combo === '' ? '0' : combo;
+        }
+
+        function calculateArrowPitchShift() {
+            if (pressedArrowKeys.size === 0) return 0;
+
+            const hasUp = pressedArrowKeys.has('ArrowUp');
+            const hasDown = pressedArrowKeys.has('ArrowDown');
+            const hasLeft = pressedArrowKeys.has('ArrowLeft');
+            const hasRight = pressedArrowKeys.has('ArrowRight');
+
+            if (hasUp && !hasLeft && !hasRight && !hasDown) return MAX_PITCH;
+            if (hasDown && !hasLeft && !hasRight && !hasUp) return MIN_PITCH;
+            if (hasRight && !hasUp && !hasDown && !hasLeft) return SECOND_MAX_PITCH;
+            if (hasLeft && !hasUp && !hasDown && !hasRight) return SECOND_MIN_PITCH;
+
+            if (hasUp && hasRight) return 9;
+            if (hasUp && hasLeft) return 0;
+            if (hasDown && hasRight) return -3;
+            if (hasDown && hasLeft) return -9;
+
+            return 0;
+        }
+
+        function getCurrentNoteData() {
+            const combo = getValveCombination();
+            const baseNote = fingeringChart[combo] || fingeringChart['0'];
+
+            let baseIndex = noteSequence.findIndex(n => n.name === baseNote.name);
+            if (baseIndex === -1) baseIndex = 24;
+
+            pitchLevel = calculateArrowPitchShift();
+
+            let extraOctave = (currentInstrument === 'otamatone') ? otamatoneOctaveShift : 0;
+            const totalShift = pitchLevel + (instrumentPitchOffsets[currentInstrument] || 0) + extraOctave;
+            let targetIndex = Math.max(0, Math.min(noteSequence.length - 1, baseIndex + totalShift));
+            
+            return noteSequence[targetIndex];
+        }
+
+        document.querySelectorAll('.palette-btn').forEach(button => {
+            button.addEventListener('click', () => {
+                if (button.dataset.type === 'duration') {
+                    durationIndex = durations.indexOf(button.dataset.value);
+                } else if (button.dataset.type === 'annotation') {
+                    annotationIndex = annotations.indexOf(button.dataset.value);
+                } else if (button.dataset.inst) {
+                    currentInstrument = button.dataset.inst;
+                    updateInstrumentActiveBtn();
+                    updateControlsVisibility();
+                }
+                updateUI();
+            });
+        });
+
+        function updatePaletteUI() {
+            document.querySelectorAll('[data-type="duration"]').forEach(b => {
+                b.classList.toggle('active', b.dataset.value === durations[durationIndex]);
+            });
+            document.querySelectorAll('[data-type="annotation"]').forEach(b => {
+                b.classList.toggle('active', b.dataset.value === annotations[annotationIndex]);
+            });
+        }
+
+        function triggerNotePlay() {
+            initAudio();
+            const currentAnnotation = annotations[annotationIndex];
+
+            if (currentAnnotation === 'slur' && isBlowing) {
+                const currentNote = getCurrentNoteData();
+                const now = audioCtx.currentTime;
+                configureInstrumentSound(currentNote.freq);
+                if (currentInstrument !== 'cymbals' && currentInstrument !== 'drumset' && currentInstrument !== 'vibraslap') {
+                    mainOsc.frequency.setTargetAtTime(currentNote.freq, now, 0.02);
+                    subOsc.frequency.setTargetAtTime(currentNote.freq * (currentInstrument === 'trombone' || currentInstrument === 'baritone' || currentInstrument === 'bass' ? 0.5 : 0.998), now, 0.02);
+                }
+                updateUI();
+                return;
+            }
+
+            if (noteTimeout) clearTimeout(noteTimeout);
+
+            isBlowing = true;
+            updateUI();
+
+            const now = audioCtx.currentTime;
+            const currentNote = getCurrentNoteData();
+
+            configureInstrumentSound(currentNote.freq);
+            
+            if (currentInstrument !== 'drumset' && currentInstrument !== 'cymbals') {
+                mainOsc.frequency.setValueAtTime(currentNote.freq, now);
+                subOsc.frequency.setValueAtTime(currentNote.freq * (currentInstrument === 'trombone' || currentInstrument === 'baritone' || currentInstrument === 'bass' ? 0.5 : 0.998), now);
+            }
+
+            gainNode.gain.cancelScheduledValues(now);
+            gainNode.gain.setValueAtTime(gainNode.gain.value, now);
+            
+            let attackTime = 0.015;
+            let decayTime = 0.03;
+            let sustainGain = 0.25;
+
+            // Attack envelope customization
+            if (['piano', 'guitar', 'banjo', 'stylophone'].includes(currentInstrument)) {
+                attackTime = 0.005;
+                decayTime = 0.15;
+                sustainGain = 0.05;
+            } else if (currentInstrument === 'theremin') {
+                attackTime = 0.08;
+                decayTime = 0.05;
+                sustainGain = 0.3;
+            } else if (['violin', 'viola', 'bass'].includes(currentInstrument)) {
+                attackTime = 0.05;
+                decayTime = 0.05;
+                sustainGain = 0.35;
+            } else if (currentInstrument === 'otamatone') {
+                attackTime = 0.01;
+                decayTime = 0.02;
+                sustainGain = 0.28;
+            } else if (currentInstrument === 'kalimba') {
+                attackTime = 0.003;
+                decayTime = 0.22;
+                sustainGain = 0.02;
+            } else if (currentInstrument === 'xylophone') {
+                attackTime = 0.002;
+                decayTime = 0.12;
+                sustainGain = 0.04;
+            } else if (currentInstrument === 'drumset' || currentInstrument === 'vibraslap') {
+                attackTime = 0.001;
+                decayTime = 0.06;
+                sustainGain = 0.001;
+            } else if (currentInstrument === 'cymbals') {
+                attackTime = 0.005;
+                decayTime = 0.4;
+                sustainGain = 0.001;
+            } else if (['flute', 'recorder', 'frenchhorn'].includes(currentInstrument)) {
+                attackTime = 0.04; // Smooth, soft attack for calm wind notes
+            }
+
+            gainNode.gain.linearRampToValueAtTime(0.4, now + attackTime);
+            gainNode.gain.setTargetAtTime(sustainGain, now + attackTime, decayTime);
+
+            const durationMs = getPlayDurationMs();
+
+            if (currentAnnotation === 'double') {
+                const halfDuration = durationMs / 2;
+                setTimeout(() => {
+                    const midTime = audioCtx.currentTime;
+                    gainNode.gain.setValueAtTime(0, midTime);
+                    gainNode.gain.linearRampToValueAtTime(0.4, midTime + attackTime);
+                    gainNode.gain.setTargetAtTime(sustainGain, midTime + attackTime, decayTime);
+                }, halfDuration);
+            }
+
+            if (currentAnnotation !== 'fermata') {
+                noteTimeout = setTimeout(() => { stopBlowing(); }, durationMs);
+            }
+        }
+
+        function stopBlowing() {
+            if (noteTimeout) clearTimeout(noteTimeout);
+            isBlowing = false;
+            updateUI();
+
+            if (audioCtx) {
+                const now = audioCtx.currentTime;
+                gainNode.gain.cancelScheduledValues(now);
+                gainNode.gain.setValueAtTime(gainNode.gain.value, now);
+                let fadeTime = 0.04;
+                if (['piano', 'guitar', 'banjo', 'kalimba', 'xylophone'].includes(currentInstrument)) fadeTime = 0.18;
+                if (['drumset', 'cymbals', 'vibraslap'].includes(currentInstrument)) fadeTime = 0.3;
+                gainNode.gain.exponentialRampToValueAtTime(0.0001, now + fadeTime);
+            }
+        }
+
+        function updateUI() {
+            const currentNote = getCurrentNoteData();
+            const selectedDuration = durations[durationIndex];
+            const selectedAnnotation = annotations[annotationIndex];
+
+            updatePaletteUI();
+
+            if (isBlowing) {
+                statusReadoutEl.textContent = "PLAYING 🎵";
+                statusReadoutEl.classList.add('playing');
+            } else {
+                statusReadoutEl.textContent = "SILENT";
+                statusReadoutEl.classList.remove('playing');
+            }
+
+            pitchLevelReadoutEl.textContent = `Pitch Offset: ${pitchLevel > 0 ? '+' : ''}${pitchLevel}`;
+
+            for (let i = 1; i <= 3; i++) {
+                document.getElementById(`piston-${i}`).classList.toggle('pressed', activeValves[i]);
+            }
+
+            document.querySelectorAll('.pitch-key-chip').forEach(chip => {
+                chip.classList.toggle('active', parseInt(chip.dataset.shift) === pitchLevel);
+            });
+
+            note2El.style.display = 'none';
+            doubleBeamEl.style.display = 'none';
+            slurArcEl.style.display = 'none';
+            annotationEl.style.display = 'none';
+
+            if (isBlowing || selectedAnnotation !== 'none') {
+                note1El.style.display = 'block';
+                note1El.style.top = `${currentNote.y}px`;
+
+                let noteHeadColor = '#ff5964';
+                if (currentMode === 'electronic') noteHeadColor = '#000000';
+                if (currentMode === 'strings') noteHeadColor = '#ffea00';
+
+                if (selectedDuration === 'whole') {
+                    head1El.style.backgroundColor = 'transparent';
+                    head1El.style.border = `3px solid ${currentMode === 'strings' ? '#ffea00' : '#4a5568'}`;
+                    head1El.style.width = '20px';
+                    head1El.style.height = '14px';
+                    stem1El.style.display = 'none';
+                } else if (selectedDuration === 'half') {
+                    head1El.style.backgroundColor = 'transparent';
+                    head1El.style.border = `3px solid ${currentMode === 'strings' ? '#ffea00' : '#4a5568'}`;
+                    head1El.style.width = '20px';
+                    head1El.style.height = '14px';
+                    stem1El.style.display = 'block';
+                    stem1El.style.top = '-32px';
+                    stem1El.style.left = '18px';
+                } else {
+                    head1El.style.backgroundColor = noteHeadColor;
+                    head1El.style.border = `2px solid ${currentMode === 'strings' ? '#ffea00' : '#4a5568'}`;
+                    head1El.style.width = '22px';
+                    head1El.style.height = '15px';
+                    stem1El.style.display = 'block';
+                    stem1El.style.top = '-30px';
+                    stem1El.style.left = '19px';
+                }
+
+                if (currentNote.ledger) {
+                    ledgerLineEl.style.display = 'block';
+                    ledgerLineEl.style.top = `${currentNote.y + 6}px`;
+                } else {
+                    ledgerLineEl.style.display = 'none';
+                }
+
+                if (selectedAnnotation === 'fermata') {
+                    annotationEl.textContent = '𝄐';
+                    annotationEl.style.display = 'block';
+                    annotationEl.style.top = `${currentNote.y - 45}px`;
+                } else if (selectedAnnotation === 'slur') {
+                    slurArcEl.style.display = 'block';
+                    slurArcEl.style.top = `${currentNote.y - 25}px`;
+                } else if (selectedAnnotation === 'double') {
+                    note2El.style.display = 'block';
+                    note2El.style.top = `${currentNote.y}px`;
+                    note2El.style.left = 'calc(50% + 25px)';
+                    doubleBeamEl.style.display = 'block';
+                    doubleBeamEl.style.top = `${currentNote.y - 30}px`;
+                    doubleBeamEl.style.left = 'calc(50% + 19px)';
+                }
+            } else {
+                note1El.style.display = 'none';
+                ledgerLineEl.style.display = 'none';
+            }
+        }
+
+        // Metronome Implementation
+        const metroBtn = document.getElementById('metro-toggle');
+        const metroBpmInput = document.getElementById('metro-bpm');
+        const bpmValEl = document.getElementById('bpm-val');
+
+        metroBpmInput.addEventListener('input', (e) => {
+            bpm = e.target.value;
+            bpmValEl.textContent = `${bpm} BPM`;
+            if (isMetroRunning) {
+                stopMetronome();
+                startMetronome();
+            }
+        });
+
+        metroBtn.addEventListener('click', () => {
+            if (isMetroRunning) {
+                stopMetronome();
+            } else {
+                startMetronome();
+            }
+        });
+
+        function playMetroClick() {
+            initAudio();
+            const osc = audioCtx.createOscillator();
+            const env = audioCtx.createGain();
+            osc.frequency.value = 1000;
+            env.gain.value = 0.3;
+            osc.connect(env);
+            env.connect(audioCtx.destination);
+            osc.start();
+            env.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
+            osc.stop(audioCtx.currentTime + 0.06);
+        }
+
+        function startMetronome() {
+            isMetroRunning = true;
+            metroBtn.classList.add('active');
+            metroBtn.textContent = 'STOP METRONOME';
+            const intervalMs = (60 / bpm) * 1000;
+            playMetroClick();
+            metroInterval = setInterval(playMetroClick, intervalMs);
+        }
+
+        function stopMetronome() {
+            isMetroRunning = false;
+            metroBtn.classList.remove('active');
+            metroBtn.textContent = 'START METRONOME';
+            clearInterval(metroInterval);
+        }
+
+        // Touch Valve Handlers
+        [1, 2, 3].forEach(num => {
+            const valveTouch = document.getElementById(`valve-touch-${num}`);
+            
+            valveTouch.addEventListener('pointerdown', (e) => {
+                e.preventDefault();
+                activeValves[num] = true;
+                triggerNotePlay();
+            });
+
+            valveTouch.addEventListener('pointerup', (e) => {
+                e.preventDefault();
+                activeValves[num] = false;
+                stopBlowing();
+            });
+
+            valveTouch.addEventListener('pointerleave', (e) => {
+                if (activeValves[num]) {
+                    activeValves[num] = false;
+                    stopBlowing();
+                }
+            });
+        });
+
+        blowBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); triggerNotePlay(); });
+        blowBtn.addEventListener('pointerup', (e) => { e.preventDefault(); stopBlowing(); });
+
+        // Keyboard Event Handlers
+        window.addEventListener('keydown', (e) => {
+            if (e.repeat || activeHeldKeys.has(e.code)) return;
+            activeHeldKeys.add(e.code);
+
+            let changed = false;
+
+            if (e.key === '1') { activeValves[1] = true; triggerNotePlay(); return; }
+            if (e.key === '2') { activeValves[2] = true; triggerNotePlay(); return; }
+            if (e.key === '3') { activeValves[3] = true; triggerNotePlay(); return; }
+
+            if (e.key === 'w' || e.key === 'W') {
+                e.preventDefault();
+                durationIndex = (durationIndex + 1) % durations.length;
+                changed = true;
+            } else if (e.key === 's' || e.key === 'S') {
+                e.preventDefault();
+                durationIndex = (durationIndex - 1 + durations.length) % durations.length;
+                changed = true;
+            }
+
+            if (e.key === 'a' || e.key === 'A') {
+                e.preventDefault();
+                annotationIndex = (annotationIndex - 1 + annotations.length) % annotations.length;
+                changed = true;
+            } else if (e.key === 'd' || e.key === 'D') {
+                e.preventDefault();
+                annotationIndex = (annotationIndex + 1) % annotations.length;
+                changed = true;
+            }
+
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                e.preventDefault();
+                pressedArrowKeys.add(e.key);
+                changed = true;
+            }
+
+            if (changed) {
+                if (isBlowing && annotations[annotationIndex] === 'slur') triggerNotePlay();
+                else updateUI();
+            }
+
+            if (e.code === 'Space' && !isBlowing) {
+                e.preventDefault();
+                triggerNotePlay();
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            activeHeldKeys.delete(e.code);
+
+            if (e.key === '1') { activeValves[1] = false; stopBlowing(); return; }
+            if (e.key === '2') { activeValves[2] = false; stopBlowing(); return; }
+            if (e.key === '3') { activeValves[3] = false; stopBlowing(); return; }
+
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                e.preventDefault();
+                pressedArrowKeys.delete(e.key);
+                if (isBlowing && annotations[annotationIndex] === 'slur') triggerNotePlay();
+                else updateUI();
+            }
+
+            if (e.code === 'Space') {
+                e.preventDefault();
+                stopBlowing();
+            }
+        });
+
+        updateUI();
+    </script>
+</body>
+</html>
